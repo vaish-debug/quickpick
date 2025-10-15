@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>QuickPick — Demo (Auth + Cart + Checkout)</title>
+<style>
+  :root{
+    --green:#2b9348; --muted:#6b7280; --card:#fff; --bg:#f5f7f9;
+    --danger:#e03b3b;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+  body{ margin:0; background:var(--bg); color:#111; }
+  header{ background:var(--green); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+  header h1{ margin:0; font-size:20px; }
+  nav button{ background:transparent; color:#fff; border:0; font-weight:600; cursor:pointer; margin-left:12px; }
+  main{ padding:18px; max-width:1100px; margin:18px auto; }
+  .center{ display:flex; align-items:center; justify-content:center; gap:18px; }
+  .card{ background:var(--card); padding:16px; border-radius:10px; box-shadow: 0 6px 20px rgba(15,23,42,0.05); }
+  .auth-wrap{ min-height:73vh; display:flex; align-items:center; justify-content:center; }
+  .form{ width:360px; }
+  label{ display:block; font-size:13px; color:var(--muted); margin-top:10px; }
+  input, select, textarea{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; margin-top:6px; box-sizing:border-box; }
+  button.primary{ background:var(--green); color:#fff; padding:10px 12px; border-radius:8px; border:0; cursor:pointer; margin-top:12px; }
+  button.ghost{ background:transparent; color:var(--green); border:1px solid var(--green); padding:8px 10px; border-radius:8px; cursor:pointer; }
+  .muted{ color:var(--muted); font-size:13px; }
+  .grid{ display:grid; grid-template-columns:1fr 360px; gap:18px; align-items:start; }
+  .products{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:14px; }
+  .product{ background:var(--card); padding:12px; border-radius:10px; }
+  .product img{ width:100%; height:130px; object-fit:cover; border-radius:8px; }
+  .small{ font-size:13px; color:var(--muted); }
+  .cart-item{ display:flex; justify-content:space-between; gap:10px; padding:10px; border-radius:8px; background:#fff; margin-bottom:8px; align-items:center; }
+  .danger{ color:var(--danger); font-weight:600; }
+  footer{ text-align:center; color:var(--muted); margin-top:22px; font-size:13px; }
+  .hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:16px">
+    <h1>QuickPick</h1>
+    <div class="muted" style="font-size:13px">Customer demo</div>
+  </div>
+  <nav id="topNav" style="display:flex; align-items:center;">
+    <!-- nav buttons replaced dynamically when logged in/out -->
+  </nav>
+</header>
+
+<main>
+  <!-- AUTH SCREEN -->
+  <section id="authScreen" class="auth-wrap">
+    <div class="form card">
+      <div id="authTabs" class="center" style="margin-bottom:12px">
+        <button id="btnSignIn" class="ghost" type="button">Sign In</button>
+        <button id="btnSignUp" class="ghost" type="button">Sign Up</button>
+      </div>
+
+      <!-- Sign In -->
+      <div id="signInForm">
+        <h3 style="margin-bottom:6px">Sign in to QuickPick</h3>
+        <div class="muted" style="margin-bottom:10px">Enter email or phone and password</div>
+        <label>Email or Phone<input id="signin_identifier" placeholder="email@example.com or ‪+911234567890‬"></label>
+        <label>Password<input id="signin_password" type="password" placeholder="Your password"></label>
+        <div style="display:flex;gap:8px; margin-top:12px">
+          <button class="primary" id="signinBtn" type="button">Sign In</button>
+          <button class="ghost" id="gotoSignup" type="button">Create account</button>
+        </div>
+        <div id="signinMsg" class="muted" style="margin-top:10px"></div>
+      </div>
+
+      <!-- Sign Up -->
+      <div id="signUpForm" class="hidden">
+        <h3 style="margin-bottom:6px">Create an account</h3>
+        <div class="muted" style="margin-bottom:10px">Provide name, email or phone, and password</div>
+        <label>Full name<input id="signup_name" placeholder="Your full name"></label>
+        <label>Email (or leave blank to use phone)<input id="signup_email" placeholder="email@example.com"></label>
+        <label>Phone (or leave blank to use email)<input id="signup_phone" placeholder="+911234567890"></label>
+        <label>Password<input id="signup_password" type="password"></label>
+        <div style="display:flex;gap:8px; margin-top:12px">
+          <button class="primary" id="signupBtn" type="button">Sign Up</button>
+          <button class="ghost" id="gotoSignin" type="button">Back to Sign in</button>
+        </div>
+        <div id="signupMsg" class="muted" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN APP -->
+  <section id="appScreen" class="hidden">
+    <div class="grid">
+      <div>
+        <!-- Search / Hero -->
+        <div class="card" style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="margin:0">Fresh deals near you</h2>
+              <div class="small">Certified vendors only — direct contact after purchase</div>
+            </div>
+            <div class="muted small" id="welcomeName"></div>
+          </div>
+        </div>
+
+        <!-- Products -->
+        <div id="productsWrap" class="card" style="padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0">Available Items</h3>
+            <div class="small">Suggested for you • Expiry alerts</div>
+          </div>
+          <div id="products" class="products"></div>
+        </div>
+      </div>
+
+      <!-- Right column: Cart + Checkout -->
+      <div>
+        <div class="card" style="margin-bottom:12px;">
+          <h3 style="margin:0 0 8px 0">Your Cart</h3>
+          <div id="cartList" style="min-height:120px"></div>
+          <div id="cartTotal" style="margin-top:10px;font-weight:700"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="primary" id="checkoutBtn" type="button">Checkout</button>
+            <button class="ghost" id="clearCartBtn" type="button">Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Quick Info</h3>
+          <div class="small">Payment: Cash on Delivery or Online</div>
+          <div class="small" style="margin-top:8px">Delivery estimate: <b id="deliveryEstimate">20–40 mins</b></div>
+          <div style="margin-top:10px" id="expiryAlerts"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECKOUT SCREEN -->
+  <section id="checkoutScreen" class="hidden">
+    <div class="card" style="max-width:720px; margin:0 auto;">
+      <h3>Checkout — Delivery & Payment</h3>
+      <div class="muted" style="margin-bottom:8px">Fill full address and contact so vendor can reach you directly</div>
+
+      <label>Full name<input id="chk_name"></label>
+      <label>Phone<input id="chk_phone"></label>
+      <label>Flat / House No.<input id="chk_flat"></label>
+      <label>Locality<input id="chk_locality"></label>
+      <label>Colony / Street<input id="chk_colony"></label>
+      <label>Landmark (optional)<input id="chk_landmark"></label>
+
+      <label>Payment option
+        <select id="chk_payment">
+          <option>Cash on Delivery</option>
+          <option>UPI</option>
+          <option>Card (simulate)</option>
+        </select>
+      </label>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="primary" id="placeOrderBtn" type="button">Place Order</button>
+        <button class="ghost" id="backToCartBtn" type="button">Back to cart</button>
+      </div>
+      <div id="checkoutMsg" class="muted" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- CONFIRM -->
+  <section id="confirmScreen" class="hidden">
+    <div class="card" style="max-width:620px;margin:0 auto;text-align:center">
+      <h2>🎉 Order Confirmed</h2>
+      <p id="confirmText" class="muted"></p>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+        <button class="primary" id="backHomeBtn" type="button">Back to Home</button>
+        <button class="ghost" id="viewOrderBtn" type="button">View Order (demo)</button>
+      </div>
+    </div>
+  </section>
+
+  <footer style="text-align:center; margin-top:20px" class="muted">QuickPick demo • data stored locally in your browser</footer>
+</main>
+
+<script>
+/* ------------------------------
+   Simple demo state (localStorage)
+   ------------------------------ */
+const LS_USERS = 'qp_users_v1';
+const LS_SESSION = 'qp_session_v1'; // store logged-in user id
+const LS_CART = 'qp_cart_v1';
+
+// sample products (images are hotlink Unsplash; offline use will still work)
+const PRODUCTS = [
+  { id:'p1', title:'Brown Bread (12 pcs)', vendor:'SweetBite Bakery', price:30, category:'bakery', img:'https://images.unsplash.com/photo-1608198093002-ad4e005484ec', expiresMins:24, certified:true },
+  { id:'p2', title:'Organic Milk 1L', vendor:'MilkyWay Dairy', price:45, category:'dairy', img:'https://images.unsplash.com/photo-1585238342025-78d387f4a707', expiresMins:8, certified:true },
+  { id:'p3', title:'Tomatoes 1kg', vendor:'GreenLeaf Vegetables', price:20, category:'vegetables', img:'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce', expiresMins:6, certified:true },
+  { id:'p4', title:'Fruit Basket (mixed)', vendor:'DailyFruits', price:120, category:'fruits', img:'https://images.unsplash.com/photo-1574226516831-e1dff420e12b', expiresMins:40, certified:false }, // uncertified should be hidden
+  { id:'p5', title:'Curd Cup', vendor:'MilkyWay Dairy', price:25, category:'dairy', img:'https://images.unsplash.com/photo-1587731522843-430e8d1b6b46', expiresMins:12, certified:true }
+];
+
+/* ------------------------------
+   Utility helpers
+   ------------------------------ */
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){return null;} }
+function lsSet(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function getUsers(){ return lsGet(LS_USERS) || []; }
+function saveUsers(u){ lsSet(LS_USERS, u); }
+function setSession(userId){ lsSet(LS_SESSION, userId); }
+function getSession(){ return lsGet(LS_SESSION); }
+function clearSession(){ localStorage.removeItem(LS_SESSION); }
+function getCart(){ return lsGet(LS_CART) || []; }
+function saveCart(c){ lsSet(LS_CART, c); }
+
+/* ------------------------------
+   Initial UI wiring
+   ------------------------------ */
+const authScreen = document.getElementById('authScreen');
+const appScreen = document.getElementById('appScreen');
+const checkoutScreen = document.getElementById('checkoutScreen');
+const confirmScreen = document.getElementById('confirmScreen');
+const signInForm = document.getElementById('signInForm');
+const signUpForm = document.getElementById('signUpForm');
+const signinMsg = document.getElementById('signinMsg');
+const signupMsg = document.getElementById('signupMsg');
+const topNav = document.getElementById('topNav');
+const welcomeName = document.getElementById('welcomeName');
+const productsEl = document.getElementById('products');
+const cartListEl = document.getElementById('cartList');
+const cartTotalEl = document.getElementById('cartTotal');
+const expiryAlertsEl = document.getElementById('expiryAlerts');
+
+/* ------------------------------
+   Auth tab switching
+   ------------------------------ */
+document.getElementById('btnSignIn').addEventListener('click', ()=>{ showSignIn(); });
+document.getElementById('btnSignUp').addEventListener('click', ()=>{ showSignUp(); });
+document.getElementById('gotoSignup').addEventListener('click', ()=>{ showSignUp(); });
+document.getElementById('gotoSignin').addEventListener('click', ()=>{ showSignIn(); });
+
+function showSignIn(){ signUpForm.classList.add('hidden'); signInForm.classList.remove('hidden'); signinMsg.textContent=''; signupMsg.textContent=''; }
+function showSignUp(){ signInForm.classList.add('hidden'); signUpForm.classList.remove('hidden'); signinMsg.textContent=''; signupMsg.textContent=''; }
+
+/* ------------------------------
+   Sign up / Sign in logic
+   ------------------------------ */
+document.getElementById('signupBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('signup_name').value.trim();
+  const email = document.getElementById('signup_email').value.trim();
+  const phone = document.getElementById('signup_phone').value.trim();
+  const pwd = document.getElementById('signup_password').value;
+  signupMsg.textContent = '';
+  if(!name){ signupMsg.textContent = 'Enter name.'; return; }
+  if(!email && !phone){ signupMsg.textContent = 'Provide email or phone.'; return; }
+  if(!pwd || pwd.length < 4){ signupMsg.textContent = 'Password must be at least 4 characters.'; return; }
+
+  const users = getUsers();
+  // ensure unique email/phone
+  if(email && users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase())){ signupMsg.textContent = 'Email already registered.'; return; }
+  if(phone && users.some(u => u.phone && u.phone === phone)){ signupMsg.textContent = 'Phone already registered.'; return; }
+
+  const id = 'u_' + Math.random().toString(36).slice(2,9);
+  users.push({ id, name, email: email||null, phone: phone||null, password: pwd });
+  saveUsers(users);
+  signupMsg.textContent = 'Account created — you can sign in now.';
+  // auto-switch to sign in and pre-fill identifier
+  showSignIn();
+  document.getElementById('signin_identifier').value = email || phone;
+});
+
+document.getElementById('signinBtn').addEventListener('click', ()=>{
+  const identifier = document.getElementById('signin_identifier').value.trim();
+  const pwd = document.getElementById('signin_password').value;
+  signinMsg.textContent = '';
+  if(!identifier || !pwd){ signinMsg.textContent = 'Enter identifier and password.'; return; }
+  const users = getUsers();
+  const found = users.find(u => (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || (u.phone && u.phone === identifier));
+  if(!found){ signinMsg.textContent = 'No account found for that email/phone.'; return; }
+  if(found.password !== pwd){ signinMsg.textContent = 'Incorrect password.'; return; }
+  // success
+  setSession(found.id);
+  startApp(found);
+});
+
+/* ------------------------------
+   App start / logout / nav
+   ------------------------------ */
+function startApp(user){
+  authScreen.classList.add('hidden');
+  appScreen.classList.remove('hidden');
+  checkoutScreen.classList.add('hidden');
+  confirmScreen.classList.add('hidden');
+  // render top nav (account + logout)
+  topNav.innerHTML = '';
+  const acctBtn = document.createElement('button'); acctBtn.type='button'; acctBtn.textContent = 'Account';
+  acctBtn.addEventListener('click', ()=>{ alert(Account: ${user.name}\nEmail: ${user.email||'—'}\nPhone: ${user.phone||'—'}); });
+  const logoutBtn = document.createElement('button'); logoutBtn.type='button'; logoutBtn.textContent = 'Logout';
+  logoutBtn.addEventListener('click', ()=>{ logout(); });
+  topNav.appendChild(acctBtn); topNav.appendChild(logoutBtn);
+
+  welcomeName.textContent = user.name;
+  renderProducts();
+  renderCart();
+  renderExpiryAlerts();
+}
+
+function logout(){
+  clearSession();
+  appScreen.classList.add('hidden');
+  authScreen.classList.remove('hidden');
+  topNav.innerHTML = '';
+  // clear signin fields
+  document.getElementById('signin_identifier').value = '';
+  document.getElementById('signin_password').value = '';
+}
+
+/* ------------------------------
+   Products rendering & add to cart
+   ------------------------------ */
+function renderProducts(){
+  productsEl.innerHTML = '';
+  // show only certified products
+  const visible = PRODUCTS.filter(p => p.certified);
+  visible.forEach(p=>{
+    const div = document.createElement('div'); div.className='product';
+    div.innerHTML = `
+      <img src="${p.img}&w=900&q=60" alt="${p.title}">
+      <div style="margin-top:8px;font-weight:600">${escapeHtml(p.title)} <span style="font-size:13px;color:var(--muted);font-weight:500">• ${p.vendor}</span></div>
+      <div class="small" style="margin:8px 0">₹${p.price} • ${p.category}</div>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="primary">Add</button>
+        <button type="button" class="ghost">View</button>
+      </div>
+    `;
+    // add behaviour
+    div.querySelector('.primary').addEventListener('click', ()=> addToCart(p.id));
+    div.querySelector('.ghost').addEventListener('click', ()=> alert(${p.title}\nVendor: ${p.vendor}\nPrice: ₹${p.price}));
+    productsEl.appendChild(div);
+  });
+}
+
+/* ------------------------------
+   Cart (add / remove / clear)
+   ------------------------------ */
+function addToCart(prodId){
+  const prod = PRODUCTS.find(p=>p.id===prodId);
+  if(!prod) return;
+  const cart = getCart();
+  cart.push({ id: prod.id, title: prod.title, price: prod.price, vendor: prod.vendor });
+  saveCart(cart);
+  renderCart();
+  // small success
+  showToast(${prod.title} added to cart);
+}
+
+function renderCart(){
+  const cart = getCart();
+  cartListEl.innerHTML = '';
+  if(cart.length === 0){
+    cartListEl.innerHTML = '<div class="small">Your cart is empty.</div>';
+    cartTotalEl.textContent = '';
+    return;
+  }
+  let total = 0;
+  cart.forEach((it, idx)=>{
+    total += Number(it.price);
+    const row = document.createElement('div'); row.className='cart-item';
+    row.innerHTML = `<div>${escapeHtml(it.title)} <div class="small">${it.vendor}</div></div>
+                     <div style="display:flex;gap:6px;align-items:center"><div style="font-weight:700">₹${it.price}</div>
+                     <button type="button" style="background:#f3f4f6;border:0;padding:6px;border-radius:8px;cursor:pointer" onclick="removeFromCart(${idx})">Remove</button></div>`;
+    cartListEl.appendChild(row);
+  });
+  cartTotalEl.textContent = Total: ₹${total};
+}
+
+function removeFromCart(index){
+  const cart = getCart();
+  if(index < 0 || index >= cart.length) return;
+  cart.splice(index,1);
+  saveCart(cart);
+  renderCart();
+}
+
+document.getElementById('clearCartBtn').addEventListener('click', ()=>{
+  if(!confirm('Clear entire cart?')) return;
+  saveCart([]);
+  renderCart();
+});
+
+/* ------------------------------
+   Checkout flow
+   ------------------------------ */
+document.getElementById('checkoutBtn').addEventListener('click', ()=>{
+  const cart = getCart();
+  if(cart.length===0){ alert('Cart is empty'); return; }
+  // prefill checkout with logged user if available
+  const userId = getSession();
+  const users = getUsers();
+  const user = users.find(u=>u.id===userId);
+  if(user){
+    document.getElementById('chk_name').value = user.name || '';
+    document.getElementById('chk_phone').value = user.phone || '';
+  }
+  appScreen.classList.add('hidden');
+  checkoutScreen.classList.remove('hidden');
+});
+
+document.getElementById('backToCartBtn').addEventListener('click', ()=>{ checkoutScreen.classList.add('hidden'); appScreen.classList.remove('hidden'); });
+
+document.getElementById('placeOrderBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('chk_name').value.trim();
+  const phone = document.getElementById('chk_phone').value.trim();
+  const flat = document.getElementById('chk_flat').value.trim();
+  const locality = document.getElementById('chk_locality').value.trim();
+  const colony = document.getElementById('chk_colony').value.trim();
+  const payment = document.getElementById('chk_payment').value;
+  const msg = document.getElementById('checkoutMsg');
+  msg.textContent = '';
+  if(!name || !phone || !flat || !locality || !colony){ msg.textContent = 'Please fill all required address fields.'; return; }
+  // simulate order placement
+  const cart = getCart(); const orderId = 'ORD' + Date.now().toString().slice(-6);
+  saveCart([]);
+  renderCart();
+  checkoutScreen.classList.add('hidden');
+  confirmScreen.classList.remove('hidden');
+  document.getElementById('confirmText').textContent = Order ${orderId} placed. Payment: ${payment}. Delivery in ~20–40 minutes. Vendor will contact you at ${phone} if needed.;
+});
+
+/* ------------------------------
+   Confirm actions
+   ------------------------------ */
+document.getElementById('backHomeBtn').addEventListener('click', ()=>{
+  confirmScreen.classList.add('hidden');
+  appScreen.classList.remove('hidden');
+});
+document.getElementById('viewOrderBtn').addEventListener('click', ()=> alert('Order history not implemented in demo.'));
+
+function logout(){ clearSession(); location.reload(); }
+
+/* ------------------------------
+   Small UI helpers
+   ------------------------------ */
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]) ); }
+function showToast(txt){
+  const el = document.createElement('div'); el.textContent = txt;
+  el.style.position='fixed'; el.style.right='18px'; el.style.bottom='18px'; el.style.padding='10px 12px'; el.style.background='rgba(15,23,42,0.9)'; el.style.color='#fff'; el.style.borderRadius='8px'; el.style.zIndex=9999;
+  document.body.appendChild(el);
+  setTimeout(()=> el.style.opacity='0', 1800);
+  setTimeout(()=> el.remove(), 2300);
+}
+
+/* ------------------------------
+   Expiry alerts & delivery estimate
+   ------------------------------ */
+function renderExpiryAlerts(){
+  expiryAlertsEl.innerHTML = '';
+  const soon = PRODUCTS.filter(p=>p.certified && p.expiresMins <= 10);
+  if(soon.length){
+    soon.forEach(s=>{
+      const d = document.createElement('div');
+      d.style.background='#fff4e5'; d.style.padding='8px'; d.style.borderRadius='8px'; d.style.marginBottom='8px';
+      d.innerHTML = ⚠ Deal expiring soon: <b>${escapeHtml(s.title)}</b> from ${escapeHtml(s.vendor)} — expires in ${s.expiresMins} mins;
+      expiryAlertsEl.appendChild(d);
+    });
+  } else {
+    expiryAlertsEl.innerHTML = '<div class="small">No urgent expiring deals right now.</div>';
+  }
+}
+
+/* ------------------------------
+   On load: if session exists -> start app
+   ------------------------------ */
+window.addEventListener('load', ()=>{
+  const users = getUsers();
+  // sample default user for convenience (only once)
+  if(!users.length){
+    const sample = { id:'u_demo', name:'Demo User', email:'demo@example.com', phone:'+911234567890', password:'demo' };
+    saveUsers([sample]);
+  }
+  const sessionId = getSession();
+  if(sessionId){
+    const u = getUsers().find(x=>x.id===sessionId);
+    if(u) return startApp(u);
+    clearSession();
+  }
+  // default: show sign in
+  showSignIn();
+});
+
+/* ------------------------------
+   Expose some functions for debugging
+   ------------------------------ */
+window._qp = { getUsers, getCart, saveCart, PRODUCTS };
+</script>
+</body>
+</html>
