@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Food Reduction Management — Demo</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --muted:#6b7280; --accent:#0b74de;
+      --success:#0ea64b; --danger:#e03b3b;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    body{ margin:0; background:var(--bg); color:#111827; padding:18px; }
+    header{ display:flex; gap:18px; align-items:center; margin-bottom:16px; }
+    h1{ font-size:20px; margin:0; }
+    .grid{ display:grid; gap:12px; grid-template-columns: 360px 1fr; align-items:start; }
+    .card{ background:var(--card); border-radius:12px; padding:14px; box-shadow:0 6px 18px rgba(15,23,42,0.06); }
+    label{ display:block; font-size:12px; color:var(--muted); margin-top:8px; }
+    input[type="text"], input[type="number"], textarea, select{ width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e6e9ef; margin-top:6px; box-sizing:border-box; }
+    button{ background:var(--accent); color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    button.secondary{ background:#e6eefc; color:#053c7a; }
+    .small{ font-size:13px; padding:6px 8px; border-radius:8px; }
+    .list{ display:flex; flex-direction:column; gap:10px; }
+    .item{ display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px; border-radius:10px; border:1px solid #eef2f7; }
+    .meta{ color:var(--muted); font-size:13px }
+    .tags{ display:flex; gap:6px; margin-top:6px }
+    .tag{ background:#f1f5f9; color:#0b213d; padding:4px 8px; border-radius:999px; font-size:12px }
+    .danger{ color:var(--danger); font-weight:600 }
+    .success{ color:var(--success); font-weight:600 }
+    footer{ margin-top:18px; color:var(--muted); font-size:13px; }
+    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .controls{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .muted{ color:var(--muted); font-size:13px; }
+    .small-note{ font-size:12px; color:var(--muted) }
+    .badge{ background:#eef2ff; color:#044f9e; padding:6px 8px; border-radius:8px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍞 Food Reduction — Local Vendors</h1>
+    <div class="small-note">Demo (client-side). Vendors and items saved in your browser.</div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: Forms -->
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="card">
+        <strong>Add / Onboard Vendor</strong>
+        <div class="small-note">Vendors provide direct contact and location (lat, lng).</div>
+        <label>Vendor name<input id="vendorName" type="text" placeholder="e.g., Asha Bakery" /></label>
+        <label>Category
+          <select id="vendorCategory">
+            <option value="bakery">Bakery</option>
+            <option value="fruits">Fruits/Vegetables</option>
+            <option value="dairy">Dairy</option>
+            <option value="prepared">Prepared Food</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>Phone<input id="vendorPhone" type="text" placeholder="phone (tel)"/></label>
+        <label>Email<input id="vendorEmail" type="text" placeholder="email (optional)"/></label>
+        <label>Address<input id="vendorAddress" type="text" placeholder="street / area"/></label>
+        <label>Location (decimal degrees)
+          <div class="row">
+            <input id="vendorLat" type="number" step="any" placeholder="Latitude (e.g., 12.9716)" />
+            <input id="vendorLng" type="number" step="any" placeholder="Longitude (e.g., 77.5946)" />
+            <button id="useMyLocVendor" class="secondary small">Use my location</button>
+          </div>
+        </label>
+        <div style="margin-top:8px" class="row">
+          <button id="addVendorBtn">Add Vendor</button>
+          <button id="clearV" class="secondary">Clear</button>
+        </div>
+        <div id="vendorMsg" class="muted" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <strong>Add Item (Leftover / Surplus)</strong>
+        <label>Title<input id="itemTitle" type="text" placeholder="e.g., 12 loaves - day old"/></label>
+        <label>Vendor<select id="itemVendor"></select></label>
+        <label>Category<input id="itemCategory" type="text" placeholder="e.g., bakery, fruits"/></label>
+        <label>Quantity<input id="itemQty" type="number" min="1" value="1"/></label>
+        <label>Price (₹)<input id="itemPrice" type="number" min="0" value="0"/></label>
+        <label>Description<textarea id="itemDesc" rows="2" placeholder="brief details"></textarea></label>
+        <label><input id="itemDamaged" type="checkbox" /> Mark as damaged</label>
+        <div class="row" style="margin-top:8px;">
+          <button id="addItemBtn">Add Item</button>
+          <button id="clearI" class="secondary">Clear</button>
+        </div>
+        <div id="itemMsg" class="muted" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <strong>Search & Radius</strong>
+        <div class="small-note">Find available items from vendors within your radius.</div>
+        <div class="controls">
+          <button id="useMyLoc" class="secondary small">Use my location</button>
+          <input id="searchLat" type="number" step="any" placeholder="Your lat" />
+          <input id="searchLng" type="number" step="any" placeholder="Your lng" />
+        </div>
+        <div class="controls">
+          <label>Preset:
+            <select id="areaPreset">
+              <option value="town">Town — 15 km</option>
+              <option value="town20">Town — 20 km</option>
+              <option value="city">Big city — 10 km</option>
+              <option value="city12">Big city — 12 km</option>
+            </select>
+          </label>
+          <label>Or radius (km)<input id="radiusKm" type="number" min="1" value="15" /></label>
+        </div>
+        <div class="controls">
+          <label>Category filter
+            <select id="filterCategory">
+              <option value="">Any</option>
+              <option value="bakery">Bakery</option>
+              <option value="fruits">Fruits/Vegetables</option>
+              <option value="dairy">Dairy</option>
+              <option value="prepared">Prepared Food</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label><input id="includeDamaged" type="checkbox" /> Show damaged</label>
+          <button id="searchBtn" class="small">Search</button>
+        </div>
+        <div id="searchMsg" class="muted" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div>
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>Available Items</strong>
+          <div class="badge" id="itemsCount">0 items</div>
+        </div>
+        <div id="itemsList" class="list" style="margin-top:12px;"></div>
+        <footer>Tip: When a user buys an item they get vendor contact (tel / email). No middle person.</footer>
+      </div>
+
+      <div class="card">
+        <strong>Vendors (Onboarded)</strong>
+        <div id="vendorsList" class="list" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --------------------------
+    // Utilities
+    // --------------------------
+    const ls = {
+      get(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null') }catch(e){return null} },
+      set(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+    };
+
+    function uuid(){ return 'id-'+Math.random().toString(36).slice(2,9); }
+
+    function haversine(lat1, lon1, lat2, lon2){
+      const toRad = v => v * Math.PI / 180;
+      const R = 6371; // km
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // --------------------------
+    // Data helpers
+    // --------------------------
+    function loadVendors(){ return ls.get('vendors') || []; }
+    function saveVendors(v){ ls.set('vendors', v); }
+    function loadItems(){ return ls.get('items') || []; }
+    function saveItems(i){ ls.set('items', i); }
+
+    // --------------------------
+    // Initial sample data (only if empty)
+    // --------------------------
+    if(!loadVendors().length){
+      const sampleVendors = [
+        { id: uuid(), name:'Asha Bakery', category:'bakery', contact:{phone:'+919876543210', email:'asha@example.com'}, location:{lat:12.9716, lng:77.5946}, address:'MG Road' },
+        { id: uuid(), name:'GreenVeg', category:'fruits', contact:{phone:'+919812345678', email:'green@example.com'}, location:{lat:12.9617, lng:77.5856}, address:'Market Street' },
+      ];
+      saveVendors(sampleVendors);
+    }
+    if(!loadItems().length){
+      const vendors = loadVendors();
+      const sampleItems = [
+        { id: uuid(), vendorId: vendors[0].id, title:'12 Day-old Bread Loaves', category:'bakery', quantity:12, price:30, description:'Slightly stale but edible', isDamaged:false },
+        { id: uuid(), vendorId: vendors[1].id, title:'15 kg Mixed Veg Pack', category:'fruits', quantity:5, price:200, description:'Assorted vegetables', isDamaged:false },
+      ];
+      saveItems(sampleItems);
+    }
+
+    // --------------------------
+    // DOM references
+    // --------------------------
+    const vendorName = document.getElementById('vendorName');
+    const vendorCategory = document.getElementById('vendorCategory');
+    const vendorPhone = document.getElementById('vendorPhone');
+    const vendorEmail = document.getElementById('vendorEmail');
+    const vendorAddress = document.getElementById('vendorAddress');
+    const vendorLat = document.getElementById('vendorLat');
+    const vendorLng = document.getElementById('vendorLng');
+    const useMyLocVendor = document.getElementById('useMyLocVendor');
+    const addVendorBtn = document.getElementById('addVendorBtn');
+    const vendorMsg = document.getElementById('vendorMsg');
+    const itemVendor = document.getElementById('itemVendor');
+    const itemTitle = document.getElementById('itemTitle');
+    const itemCategory = document.getElementById('itemCategory');
+    const itemQty = document.getElementById('itemQty');
+    const itemPrice = document.getElementById('itemPrice');
+    const itemDesc = document.getElementById('itemDesc');
+    const itemDamaged = document.getElementById('itemDamaged');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const itemMsg = document.getElementById('itemMsg');
+    const vendorsList = document.getElementById('vendorsList');
+    const itemsList = document.getElementById('itemsList');
+    const itemsCount = document.getElementById('itemsCount');
+
+    const useMyLoc = document.getElementById('useMyLoc');
+    const useMyLocBtn = useMyLoc;
+    const searchLat = document.getElementById('searchLat');
+    const searchLng = document.getElementById('searchLng');
+    const areaPreset = document.getElementById('areaPreset');
+    const radiusKm = document.getElementById('radiusKm');
+    const searchBtn = document.getElementById('searchBtn');
+    const filterCategory = document.getElementById('filterCategory');
+    const includeDamaged = document.getElementById('includeDamaged');
+    const searchMsg = document.getElementById('searchMsg');
+    const clearV = document.getElementById('clearV');
+    const clearI = document.getElementById('clearI');
+
+    // --------------------------
+    // Rendering
+    // --------------------------
+    function renderVendorSelect(){
+      const vs = loadVendors();
+      itemVendor.innerHTML = '';
+      vs.forEach(v=>{
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = `${v.name} — ${v.category}`;
+        itemVendor.appendChild(opt);
+      });
+    }
+
+    function renderVendors(){
+      const vs = loadVendors();
+      vendorsList.innerHTML = '';
+      vs.forEach(v=>{
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <div>
+            <div style="font-weight:600">${escapeHtml(v.name)}</div>
+            <div class="meta">${escapeHtml(v.category)} · ${escapeHtml(v.address || '')}</div>
+            <div class="small-note">Lat:${v.location.lat.toFixed(4)} Lng:${v.location.lng.toFixed(4)}</div>
+            <div class="tags"><div class="tag">📞 ${escapeHtml(v.contact.phone||'—')}</div><div class="tag">✉️ ${escapeHtml(v.contact.email||'—')}</div></div>
+          </div>
+          <div style="text-align:right">
+            <button class="secondary small" onclick="centerVendor('${v.id}')">View items</button>
+            <button class="small" onclick="deleteVendor('${v.id}')">Delete</button>
+          </div>
+        `;
+        vendorsList.appendChild(div);
+      });
+    }
+
+    function renderItems(list){
+      itemsList.innerHTML = '';
+      const items = list || loadItems();
+      itemsCount.textContent = items.length + ' items';
+      if(items.length === 0){
+        itemsList.innerHTML = '<div class="muted">No items found. Try widening radius or adding vendors/items.</div>';
+        return;
+      }
+      items.forEach(it=>{
+        const v = loadVendors().find(x=>x.id===it.vendorId) || {name:'Unknown', contact:{}, location:{lat:0,lng:0}};
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <div style="flex:1">
+            <div style="font-weight:600">${escapeHtml(it.title)}</div>
+            <div class="meta">${escapeHtml(it.category)} · ₹${it.price} · ${it.quantity} left
+              ${it.isDamaged ? '<span class="danger"> · Damaged</span>' : ''}
+            </div>
+            <div class="small-note">${escapeHtml(it.description || '')}</div>
+            <div class="tags">
+              <div class="tag">🏪 ${escapeHtml(v.name)}</div>
+              <div class="tag">📍 ${v.location ? (v.location.lat.toFixed(3)+','+v.location.lng.toFixed(3)) : '—'}</div>
+            </div>
+          </div>
+          <div style="width:200px; text-align:right">
+            <div style="margin-bottom:8px">
+              <button class="small" onclick="buyItem('${it.id}')">Buy</button>
+              <button class="secondary small" onclick="reportDamaged('${it.id}')">Report</button>
+            </div>
+            <div class="small-note">Contact: <br/>
+              <a href="tel:${encodeURIComponent(v.contact.phone||'')}" onclick="event.stopPropagation();">${escapeHtml(v.contact.phone||'—')}</a><br/>
+              <a href="mailto:${encodeURIComponent(v.contact.email||'')}" onclick="event.stopPropagation();">${escapeHtml(v.contact.email||'—')}</a>
+            </div>
+          </div>
+        `;
+        itemsList.appendChild(div);
+      });
+    }
+
+    // --------------------------
+    // Actions
+    // --------------------------
+    addVendorBtn.addEventListener('click', ()=>{
+      const name = vendorName.value.trim();
+      const cat = vendorCategory.value;
+      const phone = vendorPhone.value.trim();
+      const email = vendorEmail.value.trim();
+      const addr = vendorAddress.value.trim();
+      const lat = parseFloat(vendorLat.value);
+      const lng = parseFloat(vendorLng.value);
+      if(!name || !phone || isNaN(lat) || isNaN(lng)){
+        vendorMsg.textContent = 'Please provide name, phone and valid lat/lng.';
+        return;
+      }
+      const vs = loadVendors();
+      const newV = { id: uuid(), name, category:cat, contact:{phone,email}, address:addr, location:{lat,lng} };
+      vs.push(newV);
+      saveVendors(vs);
+      vendorMsg.textContent = 'Vendor added.';
+      vendorName.value = vendorPhone.value = vendorEmail.value = vendorAddress.value = '';
+      vendorLat.value = vendorLng.value = '';
+      renderVendorSelect(); renderVendors(); renderItems(); // refresh
+    });
+
+    addItemBtn.addEventListener('click', ()=>{
+      const title = itemTitle.value.trim();
+      const vendorId = itemVendor.value;
+      const cat = itemCategory.value.trim() || 'other';
+      const qty = parseInt(itemQty.value) || 1;
+      const price = parseFloat(itemPrice.value) || 0;
+      const desc = itemDesc.value.trim();
+      const isDam = itemDamaged.checked;
+      if(!title || !vendorId){ itemMsg.textContent = 'Provide title and select vendor.'; return; }
+      const items = loadItems();
+      items.push({ id: uuid(), vendorId, title, category:cat, quantity:qty, price:price, description:desc, isDamaged:isDam });
+      saveItems(items);
+      itemMsg.textContent = 'Item added.';
+      itemTitle.value = itemCategory.value = itemDesc.value = ''; itemQty.value = 1; itemPrice.value = 0; itemDamaged.checked = false;
+      renderItems();
+    });
+
+    function buyItem(itemId){
+      const items = loadItems();
+      const it = items.find(x=>x.id===itemId);
+      if(!it) return alert('Item not found');
+      const wanted = prompt('Quantity to buy (number)', '1');
+      if(!wanted) return;
+      const q = parseInt(wanted);
+      if(isNaN(q) || q < 1) return alert('Invalid quantity');
+      if(it.quantity < q) return alert('Not enough quantity available');
+      const buyerName = prompt('Your name (for vendor contact)', '');
+      const buyerContact = prompt('Your contact (phone or email)', '');
+      it.quantity -= q;
+      saveItems(items);
+      renderItems();
+      const v = loadVendors().find(x=>x.id===it.vendorId);
+      let msg = `Purchase simulated. Vendor contact:\n${v.name}\nPhone: ${v.contact.phone || '—'}\nEmail: ${v.contact.email || '—'}`;
+      alert(msg);
+    }
+
+    function reportDamaged(itemId){
+      const items = loadItems();
+      const it = items.find(x=>x.id===itemId);
+      if(!it) return alert('Item not found');
+      const notes = prompt('Describe the issue (optional)', '');
+      it.isDamaged = true;
+      saveItems(items);
+      renderItems();
+      const v = loadVendors().find(x=>x.id===it.vendorId);
+      alert(`Report saved. Vendor contact:\n${v.name}\nPhone: ${v.contact.phone || '—'}\nEmail: ${v.contact.email || '—'}`);
+    }
+
+    function deleteVendor(vendorId){
+      if(!confirm('Delete vendor and their items?')) return;
+      let vs = loadVendors(); vs = vs.filter(v=>v.id!==vendorId); saveVendors(vs);
+      let items = loadItems(); items = items.filter(it=>it.vendorId!==vendorId); saveItems(items);
+      renderVendorSelect(); renderVendors(); renderItems();
+    }
+
+    window.centerVendor = function(vId){
+      // Show items only for this vendor
+      const items = loadItems().filter(it=>it.vendorId===vId);
+      renderItems(items);
+    };
+
+    // --------------------------
+    // Search by radius
+    // --------------------------
+    areaPreset.addEventListener('change', ()=>{
+      const p = areaPreset.value;
+      if(p==='town') radiusKm.value = 15;
+      if(p==='town20') radiusKm.value = 20;
+      if(p==='city') radiusKm.value = 10;
+      if(p==='city12') radiusKm.value = 12;
+    });
+
+    searchBtn.addEventListener('click', ()=>{
+      const lat = parseFloat(searchLat.value);
+      const lng = parseFloat(searchLng.value);
+      const r = parseFloat(radiusKm.value);
+      if(isNaN(lat) || isNaN(lng) || isNaN(r)) { searchMsg.textContent = 'Enter valid location and radius.'; return; }
+      searchMsg.textContent = '';
+      const cat = filterCategory.value;
+      const showDam = includeDamaged.checked;
+      const items = loadItems().filter(it=>{
+        if(!showDam && it.isDamaged) return false;
+        if(cat && it.category !== cat) return false;
+        const v = loadVendors().find(x=>x.id===it.vendorId);
+        if(!v || !v.location) return false;
+        const d = haversine(lat, lng, v.location.lat, v.location.lng);
+        it._distance = d;
+        return d <= r;
+      }).sort((a,b)=>a._distance - b._distance);
+      renderItems(items);
+      if(items.length === 0) searchMsg.textContent = 'No items found in this radius.';
+      else searchMsg.textContent = `${items.length} item(s) found (closest first).`;
+    });
+
+    // --------------------------
+    // Geolocation helpers
+    // --------------------------
+    useMyLocBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(!navigator.geolocation){ vendorMsg.textContent = 'Geolocation not supported.'; return; }
+      vendorMsg.textContent = 'Getting location...';
+      navigator.geolocation.getCurrentPosition(pos=>{
+        vendorLat.value = pos.coords.latitude.toFixed(6);
+        vendorLng.value = pos.coords.longitude.toFixed(6);
+        vendorMsg.textContent = 'Location filled.';
+      }, err=>{
+        vendorMsg.textContent = 'Unable to get location.';
+      });
+    });
+
+    useMyLoc.addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(!navigator.geolocation){ searchMsg.textContent = 'Geolocation not supported.'; return; }
+      searchMsg.textContent = 'Getting your location...';
+      navigator.geolocation.getCurrentPosition(pos=>{
+        searchLat.value = pos.coords.latitude.toFixed(6);
+        searchLng.value = pos.coords.longitude.toFixed(6);
+        searchMsg.textContent = 'Your location filled.';
+      }, err=>{
+        searchMsg.textContent = 'Unable to get location.';
+      });
+    });
+
+    // --------------------------
+    // Small helpers & init
+    // --------------------------
+    clearV.addEventListener('click', ()=>{ vendorName.value=vendorPhone.value=vendorEmail.value=vendorAddress.value=vendorLat.value=vendorLng.value=''; vendorMsg.textContent=''; });
+    clearI.addEventListener('click', ()=>{ itemTitle.value=itemCategory.value=itemDesc.value=''; itemQty.value=1; itemPrice.value=0; itemDamaged.checked=false; itemMsg.textContent=''; });
+
+    function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    renderVendorSelect(); renderVendors(); renderItems();
+
+    // Expose load functions for debugging in console:
+    window._ls = { loadVendors, loadItems, saveVendors, saveItems };
+  </script>
+</body>
+</html>
